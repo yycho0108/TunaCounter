@@ -54,11 +54,14 @@ def track(arg):
         
 
 if __name__ == "__main__":
-    track([str(i)+'.png' for i in range(176)])
-    #if len(sys.argv) < 2:
-    #    print "USAGE : {} <filename>".format(sys.argv[0])
-    #else:
-    #    track(sys.argv[1])
+    if len(sys.argv) < 2:
+        print "USAGE : {} <filename>".format(sys.argv[0])
+    else:
+        try:
+            lim = int(sys.argv[1])
+            track([str(i)+'.png' for i in range(lim)])
+        except e:
+            track(sys.argv[1])
 
 # IMG = sys.argv[1]
 # while cv2.waitKey() != 27:
