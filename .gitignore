@@ -215,5 +215,11 @@ cmake_install.cmake
 install_manifest.txt
 CTestTestfile.cmake
 
+### Jekyll ###
+_site/
+.sass-cache/
+.jekyll-metadata
+
 ### assets
 Samples-Hexacopter-Tuna
+
