@@ -17,8 +17,14 @@ Four Different Implementations of Counting Tuna with OpenCV
 
 - Background Subtraction
 
-![Background](images/bksub.png)
+<video controls width="100%" height="100%">
+	Your Browser Does Not Support The Video Tag.
+	<source src="videos/bksub.mp4" type="video/mp4">
+</video>
 
 - Optical Flow
 
- ![Optical Flow]()
+<video controls width="100%" height="100%">
+	Your Browser Does Not Support The Video Tag.
+	<source src="videos/optical.mp4" type="video/mp4">
+</video>
