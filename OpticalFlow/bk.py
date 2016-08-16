@@ -1,5 +1,4 @@
 #!/usr/bin/python
-
 import cv2
 import sys
 import numpy as np
@@ -26,8 +25,6 @@ from itertools import izip
 
 # Plot result
 from itertools import cycle
-
-from matplotlib.animation import ArtistAnimation
 
 def spawn(f):
     def fun(pipe,x):
@@ -75,6 +72,19 @@ def identify_blobs(image,processed):
 
     return len(labels), identified
 
+
+## TEST XMEANS ...
+import time
+from contextlib import contextmanager
+@contextmanager
+def TimerBlock(name):
+    start = time.time()
+    yield
+    end = time.time()
+    print "%s took %fs" % (name, end-start)
+##
+
+
 def show_clusters(data,preds,centers):
 
     '''
@@ -89,6 +99,7 @@ def show_clusters(data,preds,centers):
 
     # Generate the cluster plot
     fig, ax = plt.subplots(figsize = (14,8))
+
     # Color map
     cmap = cm.get_cmap('gist_rainbow')
 
@@ -135,33 +146,21 @@ def collect(arg):
 
 
 def track(arg):
-
-    frames = collect(arg)
-
     cv2.namedWindow('frame')
     cv2.namedWindow('optical')
 
     cv2.moveWindow('frame', 100,100);
     cv2.moveWindow('optical',100,490);
 
-    # for dynamic updates
-    fig, ax = plt.subplots()
-    DPI = fig.get_dpi()
+    fig, ax = plt.subplots(figsize = (14,8))
 
-    fig_manager = plt.get_current_fig_manager()
-    fig_manager.window.wm_geometry("+800+500")
-
-    ax.set_xlim((0,320))
-    ax.set_ylim((-180,0))
-    ax.set_autoscale_on(False)
-
-    #video = []
+    frames = collect(arg)
 
     prv = cv2.cvtColor(frames[0],cv2.COLOR_BGR2GRAY)
     hsv = np.zeros_like(frames[0])
     hsv[...,1] = 255
 
-    for num,frame in enumerate(frames):
+    for frame in frames:
 	nxt = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
 	flow = cv2.calcOpticalFlowFarneback(prv,nxt, None, 0.5, 3, 15, 3, 5, 1.2, 0)
@@ -173,7 +172,7 @@ def track(arg):
 
         # REFORMAT DATA TO POINTS
 
-	data = np.asarray([np.hstack((idx[1],idx[0],np.log(1.+bgr[idx]))) for idx in np.ndindex(bgr.shape[:-1]) if sum(bgr[idx]) > 20],dtype=np.float64)
+	data = np.asarray([np.hstack((idx, np.log(1.+bgr[idx]))) for idx in np.ndindex(bgr.shape[:-1]) if sum(bgr[idx]) > 10],dtype=np.float64)
 
         #FIND BEST k 
         #n_range = range(2,10)
@@ -188,59 +187,47 @@ def track(arg):
 	#show_clusters(data,preds,centers)
 	#plt.show()
 
-#         # Meanshift Clustering
-#         bandwidth = estimate_bandwidth(data, quantile=0.15,random_state=1)
-#         ms = MeanShift(bandwidth=bandwidth, bin_seeding=True)
-#         ms.fit(data)
-#         labels = ms.labels_
-#         cluster_centers = ms.cluster_centers_
-#         labels_unique = np.unique(labels)
-#         n_clusters_ = len(labels_unique)
-# 
-#         # PLOT RESULT
-#         plt.tight_layout()
-# 
-#         #fig.canvas.clear()
-# 
-#         ax.clear() 
-# 
-#         colors = cycle('bgrcmykbgrcmykbgrcmykbgrcmyk')
-# 
-#         for k, col in zip(range(n_clusters_), colors):
-#             my_members = labels == k
-#             cluster_center = cluster_centers[k]
-#             # points
-#             ax.plot(data[my_members, 0], -data[my_members, 1], col + '.')
-#             # center
-#             ax.plot(cluster_center[0], -cluster_center[1], 'o', markerfacecolor=col, markeredgecolor='k', markersize=14)
-#             #video.append((pts,cts))
-# 
-#         ax.set_xlim((0,320))
-#         ax.set_ylim((-180,0))
-#         ax.set_autoscale_on(False)
-# 
-#         fig.canvas.draw()
-#         plt.savefig('video/frame_%03d.png'%(num),transparent=False,bbox_inches='tight',pad_inches=0)
-#         plt.show(block=False)
-#         print("number of estimated clusters : %d" % n_clusters_)
-# 
+        # Meanshift Clustering
+        bandwidth = estimate_bandwidth(data, quantile=0.2)
+        ms = MeanShift(bandwidth=bandwidth, bin_seeding=True)
+        ms.fit(data)
+        labels = ms.labels_
+        cluster_centers = ms.cluster_centers_
+        labels_unique = np.unique(labels)
+        n_clusters_ = len(labels_unique)
+
+        # PLOT RESULT
+
+        fig.clf()
+        colors = cycle('bgrcmykbgrcmykbgrcmykbgrcmyk')
+        for k, col in zip(range(n_clusters_), colors):
+            my_members = labels == k
+            cluster_center = cluster_centers[k]
+            ax.plot(data[my_members, 0], data[my_members, 1], col + '.')
+            ax.plot(cluster_center[0], cluster_center[1], 'o', markerfacecolor=col,
+                     markeredgecolor='k', markersize=14)
+        #fig.title('Estimated number of clusters: %d' % n_clusters_)
+        fig.canvas.draw()
+        plt.show(block=False)
+
+        print("number of estimated clusters : %d" % n_clusters_)
+
+
         # BLOB DETECTION
-        num_identified, identified = identify_blobs(frame,bgr)
-	cv2.imshow('identified', cv2.resize(identified,(0,0),fx=2,fy=2))
-        cv2.imwrite('video/frame_%03d.png'%num, cv2.resize(identified,(0,0),fx=2,fy=2))
+
+        #num_identified, identified = identify_blobs(frame,bgr)
+	#cv2.imshow('identified', cv2.resize(identified,(0,0),fx=2,fy=2))
 
 	cv2.imshow('frame', cv2.resize(frame,(0,0),fx=2,fy=2))
 	cv2.imshow('optical', cv2.resize(bgr,(0,0),fx=2,fy=2))
 	blended = cv2.addWeighted(frame,0.6,bgr,0.4,0.0)
 	#cv2.imshow('optical', cv2.resize(blended,(0,0),fx=2,fy=2))
 
-	k = cv2.waitKey(5) & 0xff
+	k = cv2.waitKey(30) & 0xff
 	if k == 27:
 	    break
 	prv = nxt
 
-    #anim = ArtistAnimation(fig, video, interval=30, blit=True)
-    #anim.save('my_animation.mp4')
     cv2.destroyAllWindows()
 
 if __name__ == "__main__":
@@ -252,4 +239,3 @@ if __name__ == "__main__":
 	track(['images/'+str(i)+'.png' for i in range(100,lim)])
 	#except:
 	#    track(sys.argv[1])
-

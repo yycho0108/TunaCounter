@@ -17,6 +17,9 @@ def track(arg):
     cv2.namedWindow('frame')
     cv2.namedWindow('fgmask')
 
+    cv2.moveWindow('frame', 100,100);
+    cv2.moveWindow('fgmask',100,490);
+
     if isinstance(arg,list):
         # series of images
         for frame in arg:
